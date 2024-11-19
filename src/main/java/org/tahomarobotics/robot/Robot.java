@@ -8,8 +8,14 @@ package org.tahomarobotics.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tahomarobotics.robot.collector.Collector;
+import org.tahomarobotics.robot.collector.commands.CollectorEjectCommand;
+import org.tahomarobotics.robot.collector.commands.CollectorStowCommand;
 import org.tahomarobotics.robot.util.SubsystemIF;
 
 
@@ -21,12 +27,16 @@ import org.tahomarobotics.robot.util.SubsystemIF;
  */
 public class Robot extends TimedRobot
 {
+    Logger logger = LoggerFactory.getLogger(this.getClass());
     private static final String DEFAULT_AUTO = "Default";
     private static final String CUSTOM_AUTO = "My Auto";
     private String autoSelected;
     private final SendableChooser<String> chooser = new SendableChooser<>();
+
+    private static final OI oi = OI.getInstance();
+    private static final Collector collector = Collector.getInstance();
     
-    SubsystemIF[] subsystems = {Collector.getInstance()};
+    SubsystemIF[] subsystems = {Collector.getInstance(), OI.getInstance()};
     /**
      * This method is run when the robot is first started up and should be used for any
      * initialization code.
@@ -97,7 +107,17 @@ public class Robot extends TimedRobot
     
     /** This method is called periodically during operator control. */
     @Override
-    public void teleopPeriodic() {}
+    public void teleopPeriodic() {
+        if (oi.getPOV() == 270) {
+            //...should be fine instead of runOnce(). probably.
+            CommandScheduler.getInstance().schedule(new CollectorEjectCommand());
+        } else if (oi.getLeftTrigger() && collector.getDeployState() == Collector.DeploymentState.DEPLOYED) {
+            logger.info("Left trigger pressed, starting collector wheels.");
+            Collector.getInstance().setCollectState(Collector.CollectionState.COLLECTING);
+        } else if (oi.getLeftBumper()) {
+            CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+        }
+    }
     
     
     /** This method is called once when the robot is disabled. */

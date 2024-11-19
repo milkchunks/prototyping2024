@@ -1,14 +1,10 @@
 package org.tahomarobotics.robot.collector;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
-import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.wpilibj.motorcontrol.PWMTalonFX;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tahomarobotics.robot.RobotMap;
@@ -18,14 +14,14 @@ import static com.ctre.phoenix6.signals.ControlModeValue.Follower;
 
 public class Collector extends SubsystemIF {
     //TODO :(
-    private static final Logger logger = LoggerFactory.getLogger(getInstance().getClass());
-    private static final TalonFX spinMotor = new TalonFX(RobotMap.COLLECTOR_SPIN_MOTOR);
-    private static final TalonFX pivotMotorL = new TalonFX(RobotMap.COLLECTOR_LEFT_PIVOT_MOTOR);
-    private static final TalonFX pivotMotorR = new TalonFX(RobotMap.COLLECTOR_RIGHT_PIVOT_MOTOR);
-    MotionMagicVoltage positionControl = new MotionMagicVoltage(CollectorConstants.PIVOT_STOW_POS);
+    private final Logger logger = LoggerFactory.getLogger(getInstance().getClass());
+    private final TalonFX spinMotor = new TalonFX(RobotMap.COLLECTOR_SPIN_MOTOR);
+    private final TalonFX pivotMotorL = new TalonFX(RobotMap.COLLECTOR_LEFT_PIVOT_MOTOR);
+    private final TalonFX pivotMotorR = new TalonFX(RobotMap.COLLECTOR_RIGHT_PIVOT_MOTOR);
+    private final MotionMagicVoltage positionControl = new MotionMagicVoltage(CollectorConstants.PIVOT_STOW_POS);
 
-    private static DeploymentState deployState = DeploymentState.STOWED;
-    private static CollectionState collectState = CollectionState.DISABLED;
+    private DeploymentState deployState = DeploymentState.STOWED;
+    private CollectionState collectState = CollectionState.DISABLED;
 
     private static final Collector INSTANCE = new Collector();
 
@@ -54,36 +50,46 @@ public class Collector extends SubsystemIF {
         pivotMotorR.setControl(positionControl.withPosition(angle));
     }
 
+    public void setPivotVoltage(double voltage) {
+        pivotMotorL.setVoltage(voltage);
+        pivotMotorR.setVoltage(voltage);
+    }
+
     //TODO seems wrong because docs say pass in -1.0 to 1.0
     public void setSpinVelocity(double velocity) {
-        if (velocity <=CollectorConstants.SPIN_MAX_VELOCITY) {
+        if (velocity <= CollectorConstants.SPIN_MAX_VELOCITY) {
             spinMotor.set(velocity / CollectorConstants.SPIN_MAX_VELOCITY);
         } else {
-
+            logger.warn("Value higher than spin max velocity has been passed into Collector.setSpinVelocity()");
         }
     }
 
 
-    //TODO do this
     public void eject() {
-
+        setDeploymentState(DeploymentState.EJECT);
+        setCollectState(CollectionState.EJECTING);
     }
 
     public void setDeploymentState(DeploymentState newState) {
         switch (newState) {
             case STOWED:
-                pivotToPos(CollectorConstants.PIVOT_STOW_POS);
+                logger.info("Stowing collector...");
+                zero();
+                disable();
                 deployState = DeploymentState.STOWED;
                 break;
             case DEPLOYED:
+                logger.info("Deploying collector...");
                 pivotToPos(CollectorConstants.PIVOT_DEPLOY_POS);
                 deployState = DeploymentState.DEPLOYED;
                 break;
             case EJECT:
+                logger.info("Ejecting...");
                 pivotToPos(CollectorConstants.PIVOT_EJECT_POS);
                 deployState = DeploymentState.EJECT;
                 break;
         }
+        logger.info("Success!!");
     }
 
     public DeploymentState getDeployState() {
@@ -94,15 +100,22 @@ public class Collector extends SubsystemIF {
     public void setCollectState(CollectionState newState) {
         switch (newState) {
             case DISABLED:
+                logger.info("Disabling...");
+                disable();
                 collectState = CollectionState.DISABLED;
                 break;
             case COLLECTING:
+                logger.info("Switching to collecting state...");
+                setSpinVelocity(CollectorConstants.SPIN_MAX_VELOCITY);
                 collectState = CollectionState.COLLECTING;
                 break;
             case EJECTING:
+                logger.info("Switching to ejecting state...");
+                setSpinVelocity(-CollectorConstants.SPIN_MAX_VELOCITY);
                 collectState = CollectionState.EJECTING;
                 break;
         }
+        logger.info("Success!!");
     }
 
     public CollectionState getCollectState() {
@@ -121,8 +134,21 @@ public class Collector extends SubsystemIF {
         EJECT;
     }
 
+    //probably unnecessary but nice for readability
+    private void disable() {
+        pivotMotorL.disable();
+        pivotMotorR.disable();
+        spinMotor.disable();
+    }
+
+    public void zero() {
+        pivotToPos(CollectorConstants.PIVOT_STOW_POS);
+    }
+
+
     @Override
     public SubsystemIF initialize() {
+        setDeploymentState(DeploymentState.STOWED);
         return this;
     }
 
