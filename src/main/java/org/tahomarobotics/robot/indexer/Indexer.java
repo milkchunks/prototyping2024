@@ -33,16 +33,18 @@ public class Indexer extends SubsystemIF {
 
     @Override
     public SubsystemIF initialize() {
-        setIndexerState(currentState);
         return this;
+    }
+
+    @Override
+    public void onTeleopInit() {
+        setIndexerState(currentState);
     }
 
     @Override
     public void periodic() {
         if (getBeamBreak1State() && !getBeamBreak2State()) {
             setIndexerState(IndexerState.INDEXING);
-        } else if (getBeamBreak2State() && !getBeamBreak1State()) {
-            //nothing?? i was thinking change state to intaking but that makes no sense
         } else if (getBeamBreak1State() && getBeamBreak2State()) {
             setIndexerState(IndexerState.COLLECTED);
         }
