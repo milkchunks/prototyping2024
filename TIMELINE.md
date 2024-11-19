@@ -10,7 +10,7 @@ did motor configs, and put in arbitrary constants.
 Understanding the TalonFX.set() method and what it wants for its parameter.
 
 ### What do you plan to do tomorrow?
-Finish setting/getting states, hopefully finish the collector subsystem, start and hopefully finish basic collector commands like zero, eject, etc.
+Finish setting/getting states, hopefully finish the collector subsystem, start and hopefully finish basic collector commands like zero, eject, etc. Maybe even get started on putting commands/data on SmartDashboard for testing?
 
 ## Day 2 (11/19)
 
