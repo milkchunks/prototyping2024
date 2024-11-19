@@ -30,7 +30,7 @@ public class CollectorEjectCommand extends Command {
 
         //If the state before ejecting was not already ejecting, finish ejecting and return to that state.
         //If the state before ejecting was somehow ejecting (should not be possible because creating a new eject command
-        //is disabled while an eject command is already running), warn, cancel command, and disable collector.
+        //is disabled while an eject command is already running), warn, disable and stow collector, then cancel command.
         if (previousCollectState != Collector.CollectionState.EJECTING && previousDeployState != Collector.DeploymentState.EJECT) {
             collector.eject();
         } else {
@@ -54,7 +54,7 @@ public class CollectorEjectCommand extends Command {
     //if interrupted i think it's fine because any other commands will change the state away from eject
     @Override
     public void end(boolean interrupted) {
-        //Return to state the collector was in before ejecting
+        //Return to the state the collector was in before ejecting
         collector.setCollectState(previousCollectState);
         collector.setDeploymentState(previousDeployState);
     }

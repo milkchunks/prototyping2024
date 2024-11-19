@@ -24,7 +24,8 @@ public class CollectorStowCommand extends Command {
     }
 
     //If collector is within tolerance for the zero position, end command.
-    //If not, spin slowly forward/backward depending on if it undershot/overshot and end once the collector is within tolerance of the zero position.
+    //If not, spin slowly forward/backward depending on if it undershot/overshot
+    //and end once the collector is within tolerance of the zero position.
     @Override
     public boolean isFinished() {
         double pivotPos = collector.getPivotPos().getValueAsDouble();
@@ -34,10 +35,10 @@ public class CollectorStowCommand extends Command {
         } else {
             if (pivotPos <= 180) {
                 logger.info("Stowing failure, undershot by " + (Math.abs(pivotPos - CollectorConstants.PIVOT_STOW_POS)) + " degrees.");
-                collector.setPivotVoltage(-CollectorConstants.PIVOT_STOW_VOLTAGE);
+                collector.setPivotVoltage(-CollectorConstants.PIVOT_CORRECTION_VOLTAGE);
             } else if (pivotPos > 180) {
                 logger.info("Stowing failure, overshot by " + (Math.abs(pivotPos - CollectorConstants.PIVOT_STOW_POS)) + " degrees.");
-                collector.setPivotVoltage(CollectorConstants.PIVOT_STOW_VOLTAGE);
+                collector.setPivotVoltage(CollectorConstants.PIVOT_CORRECTION_VOLTAGE);
             }
             return false;
         }

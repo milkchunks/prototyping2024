@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tahomarobotics.robot.collector.Collector;
+import org.tahomarobotics.robot.collector.commands.CollectorDeployCommand;
 import org.tahomarobotics.robot.collector.commands.CollectorEjectCommand;
 import org.tahomarobotics.robot.collector.commands.CollectorStowCommand;
 import org.tahomarobotics.robot.util.SubsystemIF;
@@ -28,10 +29,6 @@ import org.tahomarobotics.robot.util.SubsystemIF;
 public class Robot extends TimedRobot
 {
     Logger logger = LoggerFactory.getLogger(this.getClass());
-    private static final String DEFAULT_AUTO = "Default";
-    private static final String CUSTOM_AUTO = "My Auto";
-    private String autoSelected;
-    private final SendableChooser<String> chooser = new SendableChooser<>();
 
     private static final OI oi = OI.getInstance();
     private static final Collector collector = Collector.getInstance();
@@ -45,11 +42,8 @@ public class Robot extends TimedRobot
     public void robotInit()
     {
         for (int i = 0; i < subsystems.length; i++) {
-            CommandScheduler.getInstance().registerSubsystem(subsystems[i]);
+            CommandScheduler.getInstance().registerSubsystem(subsystems[i].initialize());
         }
-        chooser.setDefaultOption("Default Auto", DEFAULT_AUTO);
-        chooser.addOption("My Auto", CUSTOM_AUTO);
-        SmartDashboard.putData("Auto choices", chooser);
     }
     
     
@@ -77,9 +71,6 @@ public class Robot extends TimedRobot
     @Override
     public void autonomousInit()
     {
-        autoSelected = chooser.getSelected();
-        // autoSelected = SmartDashboard.getString("Auto Selector", DEFAULT_AUTO);
-        System.out.println("Auto selected: " + autoSelected);
     }
     
     
@@ -87,16 +78,6 @@ public class Robot extends TimedRobot
     @Override
     public void autonomousPeriodic()
     {
-        switch (autoSelected)
-        {
-            case CUSTOM_AUTO:
-                // Put custom auto code here
-                break;
-            case DEFAULT_AUTO:
-            default:
-                // Put default auto code here
-                break;
-        }
     }
     
     
@@ -115,7 +96,15 @@ public class Robot extends TimedRobot
             logger.info("Left trigger pressed, starting collector wheels.");
             Collector.getInstance().setCollectState(Collector.CollectionState.COLLECTING);
         } else if (oi.getLeftBumper()) {
-            CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+            if (collector.getDeployState() == Collector.DeploymentState.DEPLOYED) {
+                CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+            } else if (collector.getDeployState() == Collector.DeploymentState.STOWED) {
+                CommandScheduler.getInstance().schedule(new CollectorDeployCommand());
+            } else {
+                logger.warn("State before toggling deploy/stow was neither deploy nor stow. " +
+                        "\nState: " + collector.getDeployState().name());
+                CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+            }
         }
     }
     

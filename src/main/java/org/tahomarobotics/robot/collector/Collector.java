@@ -13,22 +13,25 @@ import org.tahomarobotics.robot.util.SubsystemIF;
 import static com.ctre.phoenix6.signals.ControlModeValue.Follower;
 
 public class Collector extends SubsystemIF {
-    //TODO :(
     private final Logger logger = LoggerFactory.getLogger(getInstance().getClass());
     private final TalonFX spinMotor = new TalonFX(RobotMap.COLLECTOR_SPIN_MOTOR);
     private final TalonFX pivotMotorL = new TalonFX(RobotMap.COLLECTOR_LEFT_PIVOT_MOTOR);
     private final TalonFX pivotMotorR = new TalonFX(RobotMap.COLLECTOR_RIGHT_PIVOT_MOTOR);
+    //Motion magic for position with optional voltage parameter
     private final MotionMagicVoltage positionControl = new MotionMagicVoltage(CollectorConstants.PIVOT_STOW_POS);
 
+    //Current deploy/collector state
     private DeploymentState deployState = DeploymentState.STOWED;
     private CollectionState collectState = CollectionState.DISABLED;
 
+    //Singleton
     private static final Collector INSTANCE = new Collector();
 
     public static Collector getInstance() {
         return INSTANCE;
     }
 
+    //Apply configs on load, and set update frequency to 20ms
     public Collector() {
         spinMotor.getConfigurator().apply(CollectorConstants.spinMotorConfig);
         pivotMotorL.getConfigurator().apply(CollectorConstants.masterPivotMotorConfig);
@@ -37,6 +40,7 @@ public class Collector extends SubsystemIF {
         BaseStatusSignal.setUpdateFrequencyForAll(CollectorConstants.REFRESH_RATE);
     }
 
+    //Get pivot and spin position in degrees (i hope)
     public StatusSignal<Angle> getPivotPos() {
         return pivotMotorL.getPosition();
     }
@@ -45,31 +49,40 @@ public class Collector extends SubsystemIF {
         return spinMotor.getPosition();
     }
 
+    //Use motion magic controller to pivot to a position in degrees
     private void pivotToPos(double angle) {
         pivotMotorL.setControl(positionControl.withPosition(angle));
         pivotMotorR.setControl(positionControl.withPosition(angle));
     }
 
+    //Used to spin for correcting zero command
     public void setPivotVoltage(double voltage) {
         pivotMotorL.setVoltage(voltage);
         pivotMotorR.setVoltage(voltage);
     }
 
     //TODO seems wrong because docs say pass in -1.0 to 1.0
+    //Meters/second
     public void setSpinVelocity(double velocity) {
         if (velocity <= CollectorConstants.SPIN_MAX_VELOCITY) {
             spinMotor.set(velocity / CollectorConstants.SPIN_MAX_VELOCITY);
         } else {
-            logger.warn("Value higher than spin max velocity has been passed into Collector.setSpinVelocity()");
+            logger.warn("Value higher than spin max velocity has been passed into Collector.setSpinVelocity(), max velocity has been used instead.");
+            spinMotor.set(CollectorConstants.SPIN_MAX_VELOCITY);
         }
     }
 
 
+    //Deploy collector to eject position and spin rollers outwards
     public void eject() {
         setDeploymentState(DeploymentState.EJECT);
         setCollectState(CollectionState.EJECTING);
     }
 
+    //Change state
+    //stow = zero pivot motors and disable collector spinny thing
+    //deployed = pivot collector to be flipped out to collector notes
+    //eject = hold collector a little bit above the ground to spit notes out
     public void setDeploymentState(DeploymentState newState) {
         switch (newState) {
             case STOWED:
@@ -96,12 +109,15 @@ public class Collector extends SubsystemIF {
         return deployState;
     }
 
-    //TODO not all done
+    //Set collector spinny thing state
+    //disable = stop collector spinny motor
+    //collecting = spin inwards to take in notes
+    //ejecting = spin outwards to spit out note
     public void setCollectState(CollectionState newState) {
         switch (newState) {
             case DISABLED:
                 logger.info("Disabling...");
-                disable();
+                spinMotor.disable();
                 collectState = CollectionState.DISABLED;
                 break;
             case COLLECTING:
@@ -135,23 +151,28 @@ public class Collector extends SubsystemIF {
     }
 
     //probably unnecessary but nice for readability
+    //Disable all collector motors
     private void disable() {
         pivotMotorL.disable();
         pivotMotorR.disable();
         spinMotor.disable();
     }
 
+    //Pivot to zero position
     public void zero() {
         pivotToPos(CollectorConstants.PIVOT_STOW_POS);
     }
 
 
+    //Stow and disable on initialize
     @Override
     public SubsystemIF initialize() {
         setDeploymentState(DeploymentState.STOWED);
+        setCollectState(CollectionState.DISABLED);
         return this;
     }
 
+    //idk what to put here
     @Override
     public void periodic() {
 

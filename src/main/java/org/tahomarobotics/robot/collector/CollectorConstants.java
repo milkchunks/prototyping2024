@@ -26,7 +26,7 @@ public abstract class CollectorConstants {
     public static final double PIVOT_SUPPLY_CURRENT_LIMIT = 1;
     public static final double PIVOT_MAX_ACCELERATION = 1;
     public static final double PIVOT_MAX_VELOCITY = 1;
-    public static final double PIVOT_STOW_VOLTAGE = 0.5;
+    public static final double PIVOT_CORRECTION_VOLTAGE = 0.4;
     //conversion to DEGREES
     public static final double PIVOT_SENSOR_TO_MECHANISM_RATIO = PIVOT_GEAR_REDUCTION * 360;
 
