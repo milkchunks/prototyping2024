@@ -111,7 +111,9 @@ public class Robot extends TimedRobot
     
     /** This method is called once when the robot is disabled. */
     @Override
-    public void disabledInit() {}
+    public void disabledInit() {
+        CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+    }
     
     
     /** This method is called periodically when disabled. */

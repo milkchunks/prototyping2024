@@ -8,6 +8,7 @@ import edu.wpi.first.units.measure.Angle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tahomarobotics.robot.RobotMap;
+import org.tahomarobotics.robot.util.RobustConfigurator;
 import org.tahomarobotics.robot.util.SubsystemIF;
 
 import static com.ctre.phoenix6.signals.ControlModeValue.Follower;
@@ -23,6 +24,7 @@ public class Collector extends SubsystemIF {
     //Current deploy/collector state
     private DeploymentState deployState = DeploymentState.STOWED;
     private CollectionState collectState = CollectionState.DISABLED;
+    private final RobustConfigurator configurator = new RobustConfigurator(logger);
 
     //Singleton
     private static final Collector INSTANCE = new Collector();
@@ -33,9 +35,9 @@ public class Collector extends SubsystemIF {
 
     //Apply configs on load, and set update frequency to 20ms
     public Collector() {
-        spinMotor.getConfigurator().apply(CollectorConstants.spinMotorConfig);
-        pivotMotorL.getConfigurator().apply(CollectorConstants.masterPivotMotorConfig);
-        pivotMotorR.getConfigurator().apply(CollectorConstants.followerPivotConfig);
+        configurator.configureTalonFX(spinMotor, CollectorConstants.spinMotorConfig);
+        configurator.configureTalonFX(pivotMotorL, CollectorConstants.masterPivotMotorConfig);
+        configurator.configureTalonFX(pivotMotorR, CollectorConstants.followerPivotConfig);
 
         BaseStatusSignal.setUpdateFrequencyForAll(CollectorConstants.REFRESH_RATE);
     }
