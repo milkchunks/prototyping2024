@@ -3,12 +3,14 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package org.tahomarobotics;
+package org.tahomarobotics.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import org.tahomarobotics.robot.collector.Collector;
+import org.tahomarobotics.robot.util.SubsystemIF;
 
 
 /**
@@ -24,7 +26,7 @@ public class Robot extends TimedRobot
     private String autoSelected;
     private final SendableChooser<String> chooser = new SendableChooser<>();
     
-    
+    SubsystemIF[] subsystems = {Collector.getInstance()};
     /**
      * This method is run when the robot is first started up and should be used for any
      * initialization code.
@@ -32,6 +34,9 @@ public class Robot extends TimedRobot
     @Override
     public void robotInit()
     {
+        for (int i = 0; i < subsystems.length; i++) {
+            CommandScheduler.getInstance().registerSubsystem(subsystems[i]);
+        }
         chooser.setDefaultOption("Default Auto", DEFAULT_AUTO);
         chooser.addOption("My Auto", CUSTOM_AUTO);
         SmartDashboard.putData("Auto choices", chooser);
