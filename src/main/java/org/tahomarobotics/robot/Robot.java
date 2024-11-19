@@ -3,12 +3,21 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package org.tahomarobotics;
+package org.tahomarobotics.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.tahomarobotics.robot.collector.Collector;
+import org.tahomarobotics.robot.collector.commands.CollectorDeployCommand;
+import org.tahomarobotics.robot.collector.commands.CollectorEjectCommand;
+import org.tahomarobotics.robot.collector.commands.CollectorStowCommand;
+import org.tahomarobotics.robot.util.SubsystemIF;
 
 
 /**
@@ -19,12 +28,12 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public class Robot extends TimedRobot
 {
-    private static final String DEFAULT_AUTO = "Default";
-    private static final String CUSTOM_AUTO = "My Auto";
-    private String autoSelected;
-    private final SendableChooser<String> chooser = new SendableChooser<>();
+    Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    private static final OI oi = OI.getInstance();
+    private static final Collector collector = Collector.getInstance();
     
-    
+    SubsystemIF[] subsystems = {Collector.getInstance(), OI.getInstance()};
     /**
      * This method is run when the robot is first started up and should be used for any
      * initialization code.
@@ -32,9 +41,9 @@ public class Robot extends TimedRobot
     @Override
     public void robotInit()
     {
-        chooser.setDefaultOption("Default Auto", DEFAULT_AUTO);
-        chooser.addOption("My Auto", CUSTOM_AUTO);
-        SmartDashboard.putData("Auto choices", chooser);
+        for (int i = 0; i < subsystems.length; i++) {
+            CommandScheduler.getInstance().registerSubsystem(subsystems[i].initialize());
+        }
     }
     
     
@@ -62,9 +71,6 @@ public class Robot extends TimedRobot
     @Override
     public void autonomousInit()
     {
-        autoSelected = chooser.getSelected();
-        // autoSelected = SmartDashboard.getString("Auto Selector", DEFAULT_AUTO);
-        System.out.println("Auto selected: " + autoSelected);
     }
     
     
@@ -72,16 +78,6 @@ public class Robot extends TimedRobot
     @Override
     public void autonomousPeriodic()
     {
-        switch (autoSelected)
-        {
-            case CUSTOM_AUTO:
-                // Put custom auto code here
-                break;
-            case DEFAULT_AUTO:
-            default:
-                // Put default auto code here
-                break;
-        }
     }
     
     
@@ -92,12 +88,32 @@ public class Robot extends TimedRobot
     
     /** This method is called periodically during operator control. */
     @Override
-    public void teleopPeriodic() {}
+    public void teleopPeriodic() {
+        if (oi.getPOV() == 270) {
+            //...should be fine instead of runOnce(). probably.
+            CommandScheduler.getInstance().schedule(new CollectorEjectCommand());
+        } else if (oi.getLeftTrigger() && collector.getDeployState() == Collector.DeploymentState.DEPLOYED) {
+            logger.info("Left trigger pressed, starting collector wheels.");
+            Collector.getInstance().setCollectState(Collector.CollectionState.COLLECTING);
+        } else if (oi.getLeftBumper()) {
+            if (collector.getDeployState() == Collector.DeploymentState.DEPLOYED) {
+                CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+            } else if (collector.getDeployState() == Collector.DeploymentState.STOWED) {
+                CommandScheduler.getInstance().schedule(new CollectorDeployCommand());
+            } else {
+                logger.warn("State before toggling deploy/stow was neither deploy nor stow. " +
+                        "\nState: " + collector.getDeployState().name());
+                CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+            }
+        }
+    }
     
     
     /** This method is called once when the robot is disabled. */
     @Override
-    public void disabledInit() {}
+    public void disabledInit() {
+        CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+    }
     
     
     /** This method is called periodically when disabled. */
