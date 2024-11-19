@@ -1,4 +1,3 @@
-
 package org.tahomarobotics.robot.util;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
