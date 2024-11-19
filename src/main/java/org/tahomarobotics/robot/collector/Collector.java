@@ -18,7 +18,7 @@ import static com.ctre.phoenix6.signals.ControlModeValue.Follower;
 
 public class Collector extends SubsystemIF {
     //TODO :(
-    private static final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private static final Logger logger = LoggerFactory.getLogger(getInstance().getClass());
     private static final TalonFX spinMotor = new TalonFX(RobotMap.COLLECTOR_SPIN_MOTOR);
     private static final TalonFX pivotMotorL = new TalonFX(RobotMap.COLLECTOR_LEFT_PIVOT_MOTOR);
     private static final TalonFX pivotMotorR = new TalonFX(RobotMap.COLLECTOR_RIGHT_PIVOT_MOTOR);
