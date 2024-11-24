@@ -19,6 +19,7 @@ public final class Main
     indexer motor doesn't move when ejecting, collector motor does
     pivot motors dont move, but all the commands to move them queue (????)
     probably more but it's 5 pm
+
     */
 
    /**
