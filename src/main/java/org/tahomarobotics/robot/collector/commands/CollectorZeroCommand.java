@@ -26,17 +26,19 @@ public class CollectorZeroCommand extends Command {
     public void execute() {
         collector.setPivotVoltage(CollectorConstants.PIVOT_ZERO_VOLTAGE);
         SmartDashboard.putNumber("Zero Timer Value (Allison)", timer.get());
+        SmartDashboard.putNumber("Pivot Rotor Velocity (Allison)", collector.getRotorVelocity());
     }
 
     @Override
     public boolean isFinished() {
-        return timer.hasElapsed(CollectorConstants.ZERO_TIMEOUT) || (timer.hasElapsed(0.25) && collector.getPivotVelocity() < CollectorConstants.VELOCITY_EPSILON);
+        return timer.hasElapsed(CollectorConstants.ZERO_TIMEOUT) || (timer.hasElapsed(0.10) && Math.abs(collector.getPivotVelocity()) < CollectorConstants.VELOCITY_EPSILON);
     }
 
     //set position value to zero, then go to stow position
     @Override
     public void end(boolean interrupted) {
-        collector.setDeploymentState(Collector.DeploymentState.STOWED);
+        collector.stopAll();
         collector.zero();
+        collector.setDeploymentState(Collector.DeploymentState.STOWED);
     }
 }

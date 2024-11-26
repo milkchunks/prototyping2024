@@ -2,23 +2,18 @@ package org.tahomarobotics.robot.collector;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
-import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.DynamicMotionMagicVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tahomarobotics.robot.OI;
 import org.tahomarobotics.robot.RobotMap;
-import org.tahomarobotics.robot.collector.commands.CollectorDeployCommand;
-import org.tahomarobotics.robot.collector.commands.CollectorStowCommand;
-import org.tahomarobotics.robot.indexer.commands.IndexerEjectCommand;
-import org.tahomarobotics.robot.indexer.commands.IndexerIntakeCommand;
+import org.tahomarobotics.robot.indexer.Indexer;
 import org.tahomarobotics.robot.util.RobustConfigurator;
 import org.tahomarobotics.robot.util.SubsystemIF;
-
-import static com.ctre.phoenix6.signals.ControlModeValue.Follower;
 
 public class Collector extends SubsystemIF {
     //Singleton
@@ -33,7 +28,11 @@ public class Collector extends SubsystemIF {
     private final TalonFX pivotMotorL = new TalonFX(RobotMap.COLLECTOR_LEFT_PIVOT_MOTOR);
     private final TalonFX pivotMotorR = new TalonFX(RobotMap.COLLECTOR_RIGHT_PIVOT_MOTOR);
     //Motion magic for position with optional voltage parameter
-    private final MotionMagicVoltage positionControl = new MotionMagicVoltage(CollectorConstants.PIVOT_STOW_POS);
+    //private final DynamicMotionMagicVoltage positionControl = new DynamicMotionMagicVoltage(CollectorConstants.PIVOT_STOW_POS, CollectorConstants.PIVOT_MAX_VELOCITY, CollectorConstants.PIVOT_MAX_ACCELERATION, CollectorConstants.PIVOT_MAX_JERK);
+    private final MotionMagicVoltage positionControl = new MotionMagicVoltage(CollectorConstants.PIVOT_STOW_POS)
+            .withEnableFOC(false)
+            .withUpdateFreqHz(CollectorConstants.REFRESH_RATE)
+            .withSlot(0);
     private final MotionMagicVelocityVoltage velocityControl = new MotionMagicVelocityVoltage(0);
 
 
@@ -41,6 +40,8 @@ public class Collector extends SubsystemIF {
     private DeploymentState deployState = DeploymentState.STOWED;
     private CollectionState collectState = CollectionState.DISABLED;
     private final RobustConfigurator configurator = new RobustConfigurator(logger);
+    private double pivotTarget;
+    private final Indexer indexer = Indexer.getInstance();
 
     //Apply configs on load, and set update frequency to 20ms
     public Collector() {
@@ -64,7 +65,8 @@ public class Collector extends SubsystemIF {
 
     //Use motion magic controller to pivot to a position in degrees
     private void pivotToPos(double angle) {
-        pivotMotorL.setControl(positionControl.withPosition(angle));
+        pivotTarget = angle;
+        pivotMotorL.setControl(positionControl.withPosition(pivotTarget));
     }
 
     //Used to spin for correcting zero command
@@ -72,7 +74,12 @@ public class Collector extends SubsystemIF {
         pivotMotorL.setVoltage(voltage);
     }
 
-    public void stop() {
+    public void stopAll() {
+        setCollectState(CollectionState.DISABLED);
+        pivotMotorL.stopMotor();
+    }
+
+    public void stopRollers() {
         setCollectState(CollectionState.DISABLED);
     }
 
@@ -80,11 +87,15 @@ public class Collector extends SubsystemIF {
         return pivotMotorL.getVelocity().getValueAsDouble();
     }
 
+    public double getRotorVelocity() {
+        return pivotMotorL.getRotorVelocity().getValueAsDouble();
+    }
+
     //TODO seems wrong because docs say pass in -1.0 to 1.0
     //Meters/second
     public void setSpinVelocity(double velocity) {
         if (velocity <= CollectorConstants.SPIN_MAX_VELOCITY) {
-            spinMotor.set(velocity / CollectorConstants.SPIN_MAX_VELOCITY);
+            spinMotor.set(velocity);
         } else {
             logger.warn("Value higher than spin max velocity has been passed into Collector.setSpinVelocity(), max velocity has been used instead.");
             spinMotor.set(CollectorConstants.SPIN_MAX_VELOCITY);
@@ -107,7 +118,7 @@ public class Collector extends SubsystemIF {
         switch (newState) {
             case STOWED:
                 logger.info("Stowing collector...");
-                stow();
+                pivotStow();
                 disable();
                 deployState = DeploymentState.STOWED;
                 break;
@@ -142,7 +153,7 @@ public class Collector extends SubsystemIF {
                 break;
             case COLLECTING:
                 logger.info("Switching to collecting state...");
-                setSpinVelocity(oi.getLeftTrigger());
+                setSpinVelocity(oi.getLeftTrigger() * CollectorConstants.SPIN_MAX_VELOCITY);
                 collectState = CollectionState.COLLECTING;
                 break;
             case EJECTING:
@@ -186,6 +197,9 @@ public class Collector extends SubsystemIF {
     //Stow and disable on initialize
     @Override
     public SubsystemIF initialize() {
+        pivotMotorL.setSafetyEnabled(false);
+        pivotMotorR.setSafetyEnabled(false);
+        spinMotor.setSafetyEnabled(false);
         return this;
     }
 
@@ -198,7 +212,12 @@ public class Collector extends SubsystemIF {
     //idk what to put here
     @Override
     public void periodic() {
+        SmartDashboard.putNumber("Pivot Target (Allison)", positionControl.Position);
 
+        //is always true
+        SmartDashboard.putNumber("Motion Magic is Running (Allison)", pivotMotorL.getMotionMagicIsRunning().getValue().value);
+        //0
+        SmartDashboard.putNumber("Motor Speed (Allison)", pivotMotorL.get());
     }
 
     //Only used to assign to controller in OI and probably isn't really
@@ -206,22 +225,33 @@ public class Collector extends SubsystemIF {
     public void startCollecting() {
         logger.info("Starting collector motors...");
         setCollectState(CollectionState.COLLECTING);
-        CommandScheduler.getInstance().schedule(new IndexerIntakeCommand());
+        indexer.setIndexerState(Indexer.IndexerState.INTAKING);
     }
 
 
 
 
-    //yet again for readabiliy in OI
+    //yet again for readability in OI
     public void toggleDeploy() {
+        System.out.println("Toggling deploy...");
         if (deployState == DeploymentState.STOWED) {
-            CommandScheduler.getInstance().schedule(new CollectorDeployCommand());
+            setDeploymentState(DeploymentState.DEPLOYED);
         } else if (deployState == DeploymentState.DEPLOYED) {
-            CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+            setDeploymentState(DeploymentState.STOWED);
         }
     }
 
-    private void stow() {
+    private void pivotStow() {
         pivotToPos(CollectorConstants.PIVOT_STOW_POS);
+    }
+
+    public void stow() {
+        setDeploymentState(DeploymentState.STOWED);
+        setCollectState(CollectionState.DISABLED);
+    }
+
+    public void deploy() {
+        setDeploymentState(DeploymentState.DEPLOYED);
+        setCollectState(CollectionState.DISABLED);
     }
 }

@@ -18,8 +18,8 @@ public class Indexer extends SubsystemIF {
         return INSTANCE;
     }
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final DigitalInput beamBreak1 = new DigitalInput(RobotMap.BEAM_BREAK_1);
-    private final DigitalInput beamBreak2 = new DigitalInput(RobotMap.BEAM_BREAK_2);
+    private final DigitalInput collectorBreak = new DigitalInput(RobotMap.BEAM_BREAK_1);
+    private final DigitalInput shooterBreak = new DigitalInput(RobotMap.BEAM_BREAK_2);
     private final TalonFX rollerMotor = new TalonFX(RobotMap.INDEXER_ROLLER);
     private IndexerState currentState = IndexerState.DISABLED;
     private final RobustConfigurator configurator = new RobustConfigurator(logger);
@@ -33,6 +33,7 @@ public class Indexer extends SubsystemIF {
     @Override
     public SubsystemIF initialize() {
         setName("Indexer");
+        rollerMotor.setSafetyEnabled(false);
         return this;
     }
 
@@ -43,9 +44,10 @@ public class Indexer extends SubsystemIF {
 
     @Override
     public void periodic() {
-        if (!getBeamBreak1State() && getBeamBreak2State()) {
+        if (!getCollectorBreakState() && getShooterBreakState()) {
             setIndexerState(IndexerState.INDEXING);
-        } else if (!getBeamBreak1State() && !getBeamBreak2State()) {
+        } else if (!getCollectorBreakState() && !getShooterBreakState()) {
+            System.out.println("COLLECTED!");
             setIndexerState(IndexerState.COLLECTED);
         }
         //if beam is broken, change state
@@ -55,12 +57,12 @@ public class Indexer extends SubsystemIF {
         return currentState;
     }
 
-    public boolean getBeamBreak1State() {
-        return beamBreak1.get();
+    public boolean getCollectorBreakState() {
+        return collectorBreak.get();
     }
 
-    public boolean getBeamBreak2State() {
-        return beamBreak2.get();
+    public boolean getShooterBreakState() {
+        return shooterBreak.get();
     }
 
     //TODO: do this

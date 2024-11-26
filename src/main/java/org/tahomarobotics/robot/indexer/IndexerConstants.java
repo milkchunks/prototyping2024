@@ -26,12 +26,13 @@ public abstract class IndexerConstants {
             .withMotionMagic(new MotionMagicConfigs()
                     .withMotionMagicCruiseVelocity(MAX_VELOCITY)
                     .withMotionMagicAcceleration(MAX_ACCELERATION))
-            .withCurrentLimits(new CurrentLimitsConfigs()
-                    .withSupplyCurrentLimit(SUPPLY_LIMIT)
-                    .withSupplyCurrentLimitEnable(true)
-                    .withStatorCurrentLimit(STATOR_LIMIT)
-                    .withStatorCurrentLimitEnable(true))
+       //     .withCurrentLimits(new CurrentLimitsConfigs()
+ //                   .withSupplyCurrentLimit(SUPPLY_LIMIT)
+ //                   .withSupplyCurrentLimitEnable(true)
+ //                   .withStatorCurrentLimit(STATOR_LIMIT)
+ //                   .withStatorCurrentLimitEnable(true))
             .withSlot0(new Slot0Configs()
+                    /*
                     .withKP(0)
                     .withKI(0)
                     .withKD(0)
@@ -39,5 +40,7 @@ public abstract class IndexerConstants {
                     .withKG(0)
                     .withKS(0)
                     .withKV(0));
+                    */
+            );
     public static final double REFRESH_RATE = 20;
 }

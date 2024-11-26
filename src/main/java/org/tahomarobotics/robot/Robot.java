@@ -6,17 +6,11 @@
 package org.tahomarobotics.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.Commands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tahomarobotics.robot.collector.Collector;
-import org.tahomarobotics.robot.collector.commands.CollectorDeployCommand;
-import org.tahomarobotics.robot.collector.commands.CollectorEjectCommand;
-import org.tahomarobotics.robot.collector.commands.CollectorStowCommand;
 import org.tahomarobotics.robot.collector.commands.CollectorZeroCommand;
 import org.tahomarobotics.robot.indexer.Indexer;
 import org.tahomarobotics.robot.util.SubsystemIF;
@@ -96,6 +90,9 @@ public class Robot extends TimedRobot {
     /** This method is called once when teleop is enabled. */
     @Override
     public void teleopInit() {
+        for (int i = 0; i < subsystems.length; i++) {
+            subsystems[i].onTeleopInit();
+        }
         CommandScheduler.getInstance().schedule(new CollectorZeroCommand());
     }
     
@@ -103,12 +100,15 @@ public class Robot extends TimedRobot {
     /** This method is called periodically during operator control. */
     @Override
     public void teleopPeriodic() {
-    }    
+    }
     
     /** This method is called once when the robot is disabled. */
     @Override
     public void disabledInit() {
-        CommandScheduler.getInstance().schedule(new CollectorStowCommand());
+        for (int i = 0; i < subsystems.length; i++) {
+            subsystems[i].onDisabledInit();
+        }
+        collector.stow();
         indexer.setIndexerState(Indexer.IndexerState.DISABLED);
     }
     

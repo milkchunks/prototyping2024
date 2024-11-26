@@ -1,12 +1,11 @@
 package org.tahomarobotics.robot;
 
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import org.tahomarobotics.robot.collector.Collector;
-import org.tahomarobotics.robot.collector.commands.CollectorEjectCommand;
 import org.tahomarobotics.robot.collector.commands.CollectorZeroCommand;
-import org.tahomarobotics.robot.indexer.commands.IndexerEjectCommand;
+import org.tahomarobotics.robot.indexer.commands.EjectCommand;
 import org.tahomarobotics.robot.util.SubsystemIF;
 
 public class OI extends SubsystemIF {
@@ -33,9 +32,8 @@ public class OI extends SubsystemIF {
 
     private void bind() {
         driveController.a().onTrue(new CollectorZeroCommand());
-        driveController.leftTrigger(TRIGGER_THRESHOLD).whileTrue(collector.runOnce(collector::startCollecting));
-        driveController.leftTrigger(TRIGGER_THRESHOLD).onFalse(collector.runOnce(collector::stop));
-        driveController.povLeft().onTrue(new IndexerEjectCommand());
+        driveController.leftTrigger(TRIGGER_THRESHOLD).whileTrue(collector.runOnce(collector::startCollecting)).onFalse(collector.runOnce(collector::stopRollers));
+        driveController.povLeft().onTrue(new EjectCommand());
         driveController.leftBumper().onTrue(collector.runOnce(collector::toggleDeploy));
     }
 

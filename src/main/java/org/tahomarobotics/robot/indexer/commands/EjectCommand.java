@@ -9,14 +9,14 @@ import org.tahomarobotics.robot.collector.Collector;
 import org.tahomarobotics.robot.collector.commands.CollectorEjectCommand;
 import org.tahomarobotics.robot.indexer.Indexer;
 
-public class IndexerEjectCommand extends Command {
+public class EjectCommand extends Command {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Indexer indexer = Indexer.getInstance();
     private final Timer timer = new Timer();
     private Indexer.IndexerState previousState;
     private final Collector collector = Collector.getInstance();
 
-    public IndexerEjectCommand() {
+    public EjectCommand() {
         addRequirements(indexer);
     }
 
@@ -37,7 +37,7 @@ public class IndexerEjectCommand extends Command {
 
     @Override
     public boolean isFinished() {
-        return indexer.getBeamBreak1State() && indexer.getBeamBreak2State();
+        return indexer.getCollectorBreakState() && indexer.getShooterBreakState();
     }
 
     @Override
